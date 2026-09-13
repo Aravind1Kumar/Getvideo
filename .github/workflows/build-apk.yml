@@ -14,16 +14,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -35,30 +29,34 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: Copy Web Assets to Android
-        run: |
-          mkdir -p frontend/android/app/src/main/assets/public
-          cp -r frontend/dist/* frontend/android/app/src/main/assets/public/
+      - name: Sync Capacitor Android Project
+        working-directory: ./frontend
+        run: npx cap sync android
 
-      - name: Accept Android SDK Licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      - name: Setup Java JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
 
-      - name: Build Android APK
+      - name: Make Gradle Wrapper Executable
         working-directory: ./frontend/android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+        run: chmod +x gradlew
 
-      - name: Locate and Rename APK
+      - name: Build Android APK with Gradle
+        working-directory: ./frontend/android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Locate and Copy APK
         run: |
           mkdir -p output_apk
-          find frontend/android/app/build/outputs/apk -name "*.apk" -exec cp {} output_apk/AK-Downloader-PandaCompress.apk \;
-          echo "Generated APK files:"
-          ls -lh output_apk/
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk output_apk/AK-Downloader-PandaCompress.apk
+          test -f output_apk/AK-Downloader-PandaCompress.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: AK-Downloader-PandaCompress-APK
           path: output_apk/AK-Downloader-PandaCompress.apk
+          if-no-files-found: error
           retention-days: 14
