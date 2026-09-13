@@ -40,6 +40,9 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
+      - name: Ensure gradlew is executable
+        run: chmod +x frontend/android/gradlew
+
       - name: Sync Capacitor Android
         working-directory: ./frontend
         run: npx cap sync android
