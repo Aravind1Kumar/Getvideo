@@ -114,22 +114,22 @@ jobs:
           CERT_SHA256=$($APKSIGNER verify --print-certs "$APK_DEST" | grep -i "SHA-256 digest:" | head -n 1 | awk '{print $NF}')
           
           echo "Generating SECURITY_REPORT.md..."
-          cat <<EOF > output_apk/SECURITY_REPORT.md
-# APK Security and Audit Report
-
-- **Application ID / Package Name:** com.aravind.getvideo
-- **App Version:** 1.0 (versionCode 1)
-- **Target SDK:** 36 (minSdk: 24, compileSdk: 36)
-- **APK Filename:** AK-Downloader-release.apk
-- **APK File Size:** \${APK_SIZE} bytes (\$(( APK_SIZE / 1024 )) KB)
-- **APK SHA-256:** \`${APK_SHA256}\`
-- **Signing Certificate SHA-256:** \`${CERT_SHA256}\`
-- **Signing Scheme:** v1, v2, v3 (verified with apksigner)
-- **Declared Permissions:** android.permission.INTERNET
-- **Native Libraries (.so):** None (Pure web/Capacitor WebView runtime)
-- **Local Download/Compression Tool Execution:** None (FastAPI remote backend)
-- **Exact Build Command:** \`./gradlew assembleRelease --stacktrace\`
-EOF
+          {
+            echo "# APK Security and Audit Report"
+            echo ""
+            echo "- **Application ID / Package Name:** com.aravind.getvideo"
+            echo "- **App Version:** 1.0 (versionCode 1)"
+            echo "- **Target SDK:** 36 (minSdk: 24, compileSdk: 36)"
+            echo "- **APK Filename:** AK-Downloader-release.apk"
+            echo "- **APK File Size:** ${APK_SIZE} bytes ($(( APK_SIZE / 1024 )) KB)"
+            echo "- **APK SHA-256:** \`${APK_SHA256}\`"
+            echo "- **Signing Certificate SHA-256:** \`${CERT_SHA256}\`"
+            echo "- **Signing Scheme:** v1, v2, v3 (verified with apksigner)"
+            echo "- **Declared Permissions:** android.permission.INTERNET"
+            echo "- **Native Libraries (.so):** None (Pure web/Capacitor WebView runtime)"
+            echo "- **Local Download/Compression Tool Execution:** None (FastAPI remote backend)"
+            echo "- **Exact Build Command:** \`./gradlew assembleRelease --stacktrace\`"
+          } > output_apk/SECURITY_REPORT.md
 
           cat output_apk/SECURITY_REPORT.md
           sha256sum "$APK_DEST" > output_apk/sha256sum.txt
