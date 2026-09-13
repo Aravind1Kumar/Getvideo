@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Download,
   Link,
@@ -10,12 +10,15 @@ import {
   FolderOpen,
   Sparkles,
   TrendingDown,
+  Settings,
+  Server,
 } from 'lucide-react'
 import { VideoCard } from './components/VideoCard'
 import { ProgressBar } from './components/ProgressBar'
 import { QualitySelector } from './components/QualitySelector'
 import { CompressTab } from './components/CompressTab'
 import { formatFileSize } from './constants/presets'
+import { getApiBaseUrl, setCustomApiUrl } from './config/api'
 import type { VideoInfo, DownloadState, DownloadProgress, CompressionPreset } from './types'
 
 const SUPPORTED_SITES = [
@@ -56,7 +59,13 @@ export default function App() {
   const [savedFilename, setSavedFilename] = useState('')
   const [savedStats, setSavedStats] = useState<{ orig: number; comp: number | null; saved: number | null } | null>(null)
   const [logLines, setLogLines] = useState<string[]>([])
+  const [showSettings, setShowSettings] = useState(false)
+  const [serverUrlInput, setServerUrlInput] = useState('')
   const esRef = useRef<EventSource | null>(null)
+
+  useEffect(() => {
+    setServerUrlInput(getApiBaseUrl())
+  }, [])
 
   const handlePaste = async () => {
     try {
@@ -78,7 +87,8 @@ export default function App() {
     setState('fetching')
 
     try {
-      const res = await fetch('/api/info', {
+      const baseUrl = getApiBaseUrl()
+      const res = await fetch(`${baseUrl}/api/info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim() }),
@@ -115,7 +125,8 @@ export default function App() {
       compress_preset: compressPreset,
     })
 
-    const es = new EventSource(`/api/download?${params}`)
+    const baseUrl = getApiBaseUrl()
+    const es = new EventSource(`${baseUrl}/api/download?${params}`)
     esRef.current = es
 
     es.onmessage = (evt) => {
@@ -183,43 +194,99 @@ export default function App() {
     setStageMessage('')
   }
 
+  const handleSaveSettings = () => {
+    setCustomApiUrl(serverUrlInput)
+    setShowSettings(false)
+  }
+
   const isLoading = state === 'fetching' || state === 'downloading' || state === 'compressing'
+  const apiBase = getApiBaseUrl()
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Header */}
-      <header className="border-b border-white/5 px-6 py-3 flex items-center justify-between">
+      <header className="border-b border-white/5 px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center shadow-md shadow-brand/20">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center shadow-md shadow-brand/20 flex-shrink-0">
             <Download size={16} className="text-white" />
           </div>
-          <span className="font-bold text-white text-lg tracking-tight">AK Downloader</span>
+          <span className="font-bold text-white text-base sm:text-lg tracking-tight truncate">
+            AK Downloader
+          </span>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10">
+        {/* Navigation Tabs & Settings */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10">
+            <button
+              onClick={() => setActiveTab('downloader')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === 'downloader'
+                  ? 'bg-brand text-white shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>📥</span> <span className="hidden xs:inline">Downloader</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('compressor')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === 'compressor'
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>🐼</span> <span className="hidden xs:inline">Compress</span>
+            </button>
+          </div>
+
           <button
-            onClick={() => setActiveTab('downloader')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'downloader'
-                ? 'bg-brand text-white shadow-sm'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 rounded-xl border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+            title="Server Connection Settings"
           >
-            <span>📥</span> Downloader
-          </button>
-          <button
-            onClick={() => setActiveTab('compressor')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'compressor'
-                ? 'bg-emerald-500 text-white shadow-sm'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <span>🐼</span> Panda Compress
+            <Settings size={16} />
           </button>
         </div>
       </header>
+
+      {/* Settings Modal / Drawer */}
+      {showSettings && (
+        <div className="bg-gray-900 border-b border-white/10 px-4 py-4 sm:px-6">
+          <div className="max-w-xl mx-auto space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-300">
+                <Server size={14} className="text-brand-light" />
+                Backend Server URL
+              </div>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="text-gray-500 hover:text-gray-300 text-xs"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={serverUrlInput}
+                onChange={(e) => setServerUrlInput(e.target.value)}
+                placeholder="e.g. http://192.168.1.3:8000 or https://your-server.app"
+                className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-brand"
+              />
+              <button
+                onClick={handleSaveSettings}
+                className="px-4 py-2 bg-brand text-white font-semibold text-xs rounded-xl hover:bg-brand-dark transition-all"
+              >
+                Save
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-500">
+              For phone APK on the same Wi-Fi, use your PC's IP: <code className="text-brand-light">http://192.168.1.3:8000</code>. Leave empty for default web behavior.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center px-4 py-8 sm:py-12">
@@ -401,7 +468,7 @@ export default function App() {
                 {/* Direct download link for browser/mobile */}
                 {savedFilename && (
                   <a
-                    href={`/api/file/download/${encodeURIComponent(savedFilename)}`}
+                    href={`${apiBase}/api/file/download/${encodeURIComponent(savedFilename)}`}
                     download={savedFilename}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-md shadow-emerald-500/20"
                   >

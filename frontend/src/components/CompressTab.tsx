@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { COMPRESSION_PRESETS, formatFileSize } from '../constants/presets'
 import { CompressionPreset, CompressUploadResponse, CompressResult } from '../types'
+import { getApiBaseUrl } from '../config/api'
 
 export function CompressTab() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -67,7 +68,8 @@ export function CompressTab() {
       const formData = new FormData()
       formData.append('file', selectedFile)
 
-      const res = await fetch('/api/compress/upload', {
+      const baseUrl = getApiBaseUrl()
+      const res = await fetch(`${baseUrl}/api/compress/upload`, {
         method: 'POST',
         body: formData,
       })
@@ -90,7 +92,7 @@ export function CompressTab() {
         preset: preset,
       })
 
-      const es = new EventSource(`/api/compress/process?${params}`)
+      const es = new EventSource(`${baseUrl}/api/compress/process?${params}`)
       esRef.current = es
 
       es.onmessage = (evt) => {
@@ -349,7 +351,7 @@ export function CompressTab() {
           {/* Download Action Buttons */}
           <div className="space-y-2.5">
             <a
-              href={`/api/file/download/${encodeURIComponent(result.filename)}`}
+              href={`${getApiBaseUrl()}/api/file/download/${encodeURIComponent(result.filename)}`}
               download={result.filename}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all
                 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25"
