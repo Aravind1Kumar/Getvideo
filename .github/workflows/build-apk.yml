@@ -4,11 +4,6 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      buildType:
-        description: "Build Type: assembleRelease or assembleDebug"
-        required: false
-        default: "assembleRelease"
 
 jobs:
   build-apk:
@@ -45,31 +40,14 @@ jobs:
           mkdir -p frontend/android/app/src/main/assets/public
           cp -r frontend/dist/* frontend/android/app/src/main/assets/public/
 
+      - name: Setup Android SDK Licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
       - name: Build Android APK
         working-directory: ./frontend/android
         run: |
           chmod +x gradlew
-          TASK="${{ github.event.inputs.buildType || 'assembleRelease' }}"
-          echo "Building Gradle task: $TASK"
-
-          # If release build, generate a debug signing key so APK installs immediately on any phone
-          if [[ "$TASK" == *"Release"* ]]; then
-            echo "Generating signing key for release APK..."
-            mkdir -p $HOME/.android
-            keytool -genkey -v -keystore $HOME/.android/debug.keystore \
-              -storepass android -alias androiddebugkey -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "C=US, O=Android, CN=Android Debug"
-
-            ./gradlew $TASK \
-              -Pandroid.injected.signing.store.file="$HOME/.android/debug.keystore" \
-              -Pandroid.injected.signing.store.password=android \
-              -Pandroid.injected.signing.key.alias=androiddebugkey \
-              -Pandroid.injected.signing.key.password=android \
-              --stacktrace
-          else
-            ./gradlew $TASK --stacktrace
-          fi
+          ./gradlew assembleDebug --stacktrace
 
       - name: Locate and Rename APK
         run: |
