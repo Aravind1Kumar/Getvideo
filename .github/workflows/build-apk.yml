@@ -19,7 +19,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -34,27 +40,18 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: Sync Capacitor Android Project
+      - name: Sync Capacitor Android
         working-directory: ./frontend
         run: npx cap sync android
 
-      - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Gradle Cache
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Build and Sign Android APK
+      - name: Build Android APK
         working-directory: ./frontend/android
         run: |
           chmod +x gradlew
           TASK="${{ github.event.inputs.buildType || 'assembleRelease' }}"
-          echo "Building task: $TASK"
+          echo "Building Gradle task: $TASK"
 
-          # If release build, generate a debug signing keystore so it installs immediately on phones
+          # If release build, generate a debug signing key so APK installs immediately on any phone
           if [[ "$TASK" == *"Release"* ]]; then
             echo "Generating signing key for release APK..."
             mkdir -p $HOME/.android
@@ -77,7 +74,7 @@ jobs:
         run: |
           mkdir -p output_apk
           find frontend/android/app/build/outputs/apk -name "*.apk" -exec cp {} output_apk/AK-Downloader-PandaCompress.apk \;
-          echo "Found APK:"
+          echo "Generated APK files:"
           ls -lh output_apk/
 
       - name: Upload APK Artifact
