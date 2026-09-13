@@ -43,20 +43,36 @@ jobs:
         working-directory: ./frontend/android
         run: chmod +x gradlew
 
-      - name: Build Android APK with Gradle
+      - name: Generate Release Signing Keystore
+        run: |
+          keytool -genkey -v \
+            -keystore frontend/android/app/release.keystore \
+            -alias akdownloader \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass AravindKumarApp2026 \
+            -keypass AravindKumarApp2026 \
+            -dname "CN=Aravind Kumar, OU=Mobile, O=AK Apps, L=Hyderabad, ST=Telangana, C=IN"
+
+      - name: Make Gradle Wrapper Executable
         working-directory: ./frontend/android
-        run: ./gradlew assembleDebug --stacktrace
+        run: chmod +x gradlew
+
+      - name: Build Android Release APK with Gradle
+        working-directory: ./frontend/android
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Locate and Copy APK
         run: |
           mkdir -p output_apk
-          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk output_apk/AK-Downloader-PandaCompress.apk
-          test -f output_apk/AK-Downloader-PandaCompress.apk
+          cp frontend/android/app/build/outputs/apk/release/app-release.apk output_apk/AK-Downloader.apk
+          test -f output_apk/AK-Downloader.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AK-Downloader-PandaCompress-APK
-          path: output_apk/AK-Downloader-PandaCompress.apk
+          name: AK-Downloader-APK
+          path: output_apk/AK-Downloader.apk
           if-no-files-found: error
           retention-days: 14

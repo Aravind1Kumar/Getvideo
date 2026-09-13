@@ -1,7 +1,7 @@
 {
   "short_name": "AK Downloader",
-  "name": "AK Downloader & Panda Compress",
-  "description": "Download any video and compress with Panda Video Compressor",
+  "name": "AK Downloader",
+  "description": "Fast video downloader and smart video compressor",
   "icons": [
     {
       "src": "/icon.svg",

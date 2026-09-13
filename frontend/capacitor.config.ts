@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.aravind.getvideo',
-  appName: 'AK Downloader & Panda Compress',
+  appName: 'AK Downloader',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
