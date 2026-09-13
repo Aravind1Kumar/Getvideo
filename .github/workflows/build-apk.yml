@@ -1,0 +1,88 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      buildType:
+        description: "Build Type: assembleRelease or assembleDebug"
+        required: false
+        default: "assembleRelease"
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Web Distribution
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Sync Capacitor Android Project
+        working-directory: ./frontend
+        run: npx cap sync android
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build and Sign Android APK
+        working-directory: ./frontend/android
+        run: |
+          chmod +x gradlew
+          TASK="${{ github.event.inputs.buildType || 'assembleRelease' }}"
+          echo "Building task: $TASK"
+
+          # If release build, generate a debug signing keystore so it installs immediately on phones
+          if [[ "$TASK" == *"Release"* ]]; then
+            echo "Generating signing key for release APK..."
+            mkdir -p $HOME/.android
+            keytool -genkey -v -keystore $HOME/.android/debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "C=US, O=Android, CN=Android Debug"
+
+            ./gradlew $TASK \
+              -Pandroid.injected.signing.store.file="$HOME/.android/debug.keystore" \
+              -Pandroid.injected.signing.store.password=android \
+              -Pandroid.injected.signing.key.alias=androiddebugkey \
+              -Pandroid.injected.signing.key.password=android \
+              --stacktrace
+          else
+            ./gradlew $TASK --stacktrace
+          fi
+
+      - name: Locate and Rename APK
+        run: |
+          mkdir -p output_apk
+          find frontend/android/app/build/outputs/apk -name "*.apk" -exec cp {} output_apk/AK-Downloader-PandaCompress.apk \;
+          echo "Found APK:"
+          ls -lh output_apk/
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AK-Downloader-PandaCompress-APK
+          path: output_apk/AK-Downloader-PandaCompress.apk
+          retention-days: 14

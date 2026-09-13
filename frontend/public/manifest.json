@@ -1,0 +1,18 @@
+{
+  "short_name": "AK Downloader",
+  "name": "AK Downloader & Panda Compress",
+  "description": "Download any video and compress with Panda Video Compressor",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "display": "standalone",
+  "orientation": "portrait"
+}
